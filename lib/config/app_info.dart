@@ -4,50 +4,44 @@
 /// Estas informações são carregadas dinamicamente e podem ser acessadas de qualquer lugar do app.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:yaml/yaml.dart';
 
 class AppInfo {
   static String appName = 'Leitor de Código de Barras';
-  static String version = '1.0.0';
+  static String version = '0.0.0';
+  static String buildNumber = '0';
   static String releaseDate = '';
   static bool _initialized = false;
   
-  /// Inicializa as informações do app, carregando dados do sistema ou do pubspec.yaml
+  /// Inicializa as informações do app, carregando dados do sistema
   static Future<void> initialize() async {
     if (_initialized) return;
     
     try {
-      // Método 1: Usar package_info_plus para obter informações diretas do pacote instalado
+      // Usar package_info_plus para obter informações oficiais do pacote instalado
       final packageInfo = await PackageInfo.fromPlatform();
+      
+      // Atualizar as informações com os dados oficiais
       appName = packageInfo.appName.isEmpty ? 'Leitor de Código de Barras' : packageInfo.appName;
       version = packageInfo.version;
+      buildNumber = packageInfo.buildNumber;
       
-      // Método 2 (fallback): Ler do asset pubspec.yaml
-      if (version == '1.0.0' || version.isEmpty) {
-        try {
-          final yamlString = await rootBundle.loadString('pubspec.yaml');
-          final yaml = loadYaml(yamlString);
-          
-          if (yaml['version'] != null) {
-            // Remove o versionCode (parte após o +)
-            version = yaml['version'].toString().split('+')[0];
-          }
-        } catch (e) {
-          debugPrint('Erro ao carregar pubspec.yaml: $e');
-        }
-      }
+      debugPrint('AppInfo inicializado: $appName v$version+$buildNumber');
       
-      // Configurar a data como a data atual
+      // Configurar a data como a data atual (ou poderíamos armazená-la em algum lugar)
       final dateFormat = DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR');
       releaseDate = dateFormat.format(DateTime.now());
       _initialized = true;
     } catch (e) {
       debugPrint('Erro ao carregar informações do app: $e');
       // Usar os valores padrão em caso de erro
-      releaseDate = '29 de abril de 2025';
+      releaseDate = '7 de maio de 2025';
     }
+  }
+  
+  /// Retorna a versão completa no formato "X.Y.Z (build N)"
+  static String getFullVersion() {
+    return '$version (build $buildNumber)';
   }
 }

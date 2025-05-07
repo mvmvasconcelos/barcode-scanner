@@ -21,6 +21,9 @@ fi
 # Incrementar automaticamente o versionCode e verificar parâmetros para versão semântica
 echo "Atualizando versão do aplicativo..."
 PUBSPEC_FILE="pubspec.yaml"
+VERSION_JSON_FILE="public/version.json"
+LOCAL_PROPERTIES_FILE="android/local.properties"
+README_FILE="README.md"
 
 # Extrair a versão atual
 CURRENT_VERSION=$(grep "^version:" "$PUBSPEC_FILE" | sed 's/version: //')
@@ -71,6 +74,52 @@ echo "Nova versão: $NEW_VERSION"
 # Atualizar o arquivo pubspec.yaml com a nova versão
 sed -i "s/^version: .*/version: $NEW_VERSION/" "$PUBSPEC_FILE"
 
+# Atualizar também o arquivo local.properties com a nova versão para o Android
+if [ -f "$LOCAL_PROPERTIES_FILE" ]; then
+  # Remover as propriedades de versão anteriores se existirem
+  sed -i '/flutter.versionName=/d' "$LOCAL_PROPERTIES_FILE"
+  sed -i '/flutter.versionCode=/d' "$LOCAL_PROPERTIES_FILE"
+  
+  # Adicionar as novas propriedades de versão
+  echo "flutter.versionName=$NEW_VERSION_NAME" >> "$LOCAL_PROPERTIES_FILE"
+  echo "flutter.versionCode=$NEW_VERSION_CODE" >> "$LOCAL_PROPERTIES_FILE"
+  
+  echo "Arquivo local.properties atualizado com a nova versão"
+else
+  # Se o arquivo não existir, criar um novo com as propriedades de versão
+  echo "flutter.versionName=$NEW_VERSION_NAME" > "$LOCAL_PROPERTIES_FILE"
+  echo "flutter.versionCode=$NEW_VERSION_CODE" >> "$LOCAL_PROPERTIES_FILE"
+  echo "Arquivo local.properties criado com a nova versão"
+fi
+
+# Atualizar a versão no README.md (badge de versão)
+if [ -f "$README_FILE" ]; then
+  # Atualizar o badge de versão no README.md
+  sed -i "s/version-[0-9]*\.[0-9]*\.[0-9]*-blue/version-$NEW_VERSION_NAME-blue/" "$README_FILE"
+  echo "Badge de versão no README.md atualizado para $NEW_VERSION_NAME"
+else
+  echo "Arquivo README.md não encontrado"
+fi
+
+# Atualizar também o arquivo version.json com a nova versão
+if [ -f "$VERSION_JSON_FILE" ]; then
+  # Obter a data atual no formato YYYY-MM-DD
+  CURRENT_DATE=$(date +"%Y-%m-%d")
+  
+  # Atualizar o arquivo version.json com a nova versão e data atual
+  cat > "$VERSION_JSON_FILE" <<EOL
+{
+    "version": "$NEW_VERSION_NAME",
+    "buildNumber": "$NEW_VERSION_CODE",
+    "releaseDate": "$CURRENT_DATE",
+    "downloadUrl": "http://128.1.1.49:8085/apk/barcode.apk"
+}
+EOL
+  echo "Arquivo version.json atualizado com a nova versão: $NEW_VERSION_NAME (build $NEW_VERSION_CODE)"
+else
+  echo "Arquivo version.json não encontrado. Verifique o diretório public/"
+fi
+
 echo "Gerando arquivos Flutter necessários..."
 flutter pub get --offline || flutter pub get
 
@@ -92,6 +141,9 @@ if [ -f "$APK_PATH" ]; then
   echo "Para compartilhar o APK com seu celular, execute:"
   echo "./share-apk.sh"
     
+  # Copiar o APK para o diretório público
+  mkdir -p public/apk
+  cp "$APK_PATH" "public/apk/barcode.apk"
   echo ""
   echo "APK também disponível em: public/apk/barcode.apk"
   echo ""
@@ -115,6 +167,9 @@ else
     echo "Versão: $NEW_VERSION"
     echo ""
 
+    # Copiar o APK de debug para o diretório público
+    mkdir -p public/apk
+    cp "$DEBUG_APK_PATH" "public/apk/barcode.apk"
     echo "Para compartilhar o APK com seu celular, execute:"
     echo "./share-apk.sh"
     echo ""

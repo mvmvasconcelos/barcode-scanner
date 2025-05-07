@@ -237,6 +237,22 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                   ),
+                // Botão para o modo avançado
+                if (!provider.isSelectionMode)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(context).pushNamed('/advanced'),
+                      icon: const Icon(Icons.view_module),
+                      label: const Text('Modo Avançado'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.secondaryContainer,
+                        foregroundColor: colorScheme.onSecondaryContainer,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: provider.scans.length,

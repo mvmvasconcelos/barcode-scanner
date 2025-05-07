@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../config/app_info.dart';
 import '../providers/update_provider.dart';
 import '../services/update_service.dart';
+import 'dart:io';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -137,7 +138,7 @@ class _AboutPageState extends State<AboutPage> {
       // Mostrar um diálogo explicativo sobre o processo de instalação
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) {
-          _showInstallationInstructionsDialog();
+          _showInstallationInstructionsDialog(shouldExitApp: true);
         }
       });
     }
@@ -182,7 +183,7 @@ class _AboutPageState extends State<AboutPage> {
   }
   
   // Diálogo com instruções para a instalação
-  void _showInstallationInstructionsDialog() {
+  void _showInstallationInstructionsDialog({bool shouldExitApp = false}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -201,13 +202,25 @@ class _AboutPageState extends State<AboutPage> {
             Text('3. Aguarde a conclusão da instalação'),
             Text('4. Toque em "Abrir" para iniciar o aplicativo atualizado'),
             SizedBox(height: 12),
-            Text('Nota: Se a janela de instalação não aparecer, verifique as notificações do seu dispositivo.', 
-              style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+            Text('Nota: O aplicativo será fechado após você clicar em "ENTENDI" para permitir a instalação da nova versão.',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop();
+              
+              // Se shouldExitApp for true, fechar o aplicativo após fechar o diálogo
+              if (shouldExitApp) {
+                // Adicionar pequeno atraso para garantir que o diálogo seja fechado corretamente
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  // Fechar o aplicativo para permitir a instalação da nova versão
+                  // Isso força o aplicativo a encerrar para que o Android possa completar a instalação
+                  exit(0);
+                });
+              }
+            },
             child: const Text('ENTENDI'),
           ),
         ],

@@ -11,6 +11,7 @@ import 'providers/update_provider.dart';
 import 'screens/home_page.dart';
 import 'screens/settings_page.dart';
 import 'screens/about_page.dart';
+import 'screens/advanced_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +52,7 @@ class BarcodeApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         '/settings': (context) => const SettingsPage(),
         '/about': (context) => const AboutPage(),
+        '/advanced': (context) => const AdvancedPage(),
       },
     );
   }

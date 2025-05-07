@@ -405,9 +405,17 @@ class UpdateService {
   bool _isNewerVersion(String newVersion, String currentVersion) {
     if (newVersion == currentVersion) return false;
     
-    final List<int> newParts = newVersion.split('.')
+    // Separar a versão semântica (X.Y.Z) do número de build (N)
+    final String cleanNewVersion = newVersion.split('+').first;
+    final int? newBuild = int.tryParse(newVersion.contains('+') ? newVersion.split('+').last : '0');
+    
+    final String cleanCurrentVersion = currentVersion.split('+').first;
+    final int? currentBuild = int.tryParse(currentVersion.contains('+') ? currentVersion.split('+').last : '0');
+    
+    // Primeiro comparar as versões semânticas (X.Y.Z)
+    final List<int> newParts = cleanNewVersion.split('.')
         .map((part) => int.tryParse(part) ?? 0).toList();
-    final List<int> currentParts = currentVersion.split('.')
+    final List<int> currentParts = cleanCurrentVersion.split('.')
         .map((part) => int.tryParse(part) ?? 0).toList();
     
     // Garantir que ambas as listas têm pelo menos 3 elementos (major, minor, patch)
@@ -423,7 +431,9 @@ class UpdateService {
       }
     }
     
-    return false;
+    // Se a versão semântica for idêntica, comparar o número de build
+    // Considerar uma atualização se o build for maior
+    return (newBuild ?? 0) > (currentBuild ?? 0);
   }
   
   // Verifica e solicita permissões necessárias
