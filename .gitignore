@@ -1,0 +1,40 @@
+# Ignorar tudo por padrão
+*
+*/
+.*
+
+# Não ignorar diretórios essenciais
+!lib/
+
+# Não ignorar arquivos de configuração específicos
+!.gitignore
+!pubspec.yaml
+!analysis_options.yaml
+!README.md
+
+# Não ignorar arquivos Docker/configuração
+!Dockerfile
+!docker-compose.yml
+
+# Não ignorar scripts de build
+!build-offline-apk.sh
+!share-apk.sh
+!setup.sh
+
+# Arquivos específicos do Android que devemos manter
+!android/app/build.gradle
+!android/app/src/main/AndroidManifest.xml
+!android/build.gradle
+
+# Importar todo o código fonte em lib
+!lib/**
+
+# Ignorar arquivos compilados e de build em qualquer pasta
+**/*.apk
+**/*.aab
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock
