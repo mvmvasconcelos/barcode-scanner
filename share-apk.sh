@@ -38,6 +38,21 @@ else
     echo "Arquivo pubspec.yaml não encontrado. Não foi possível criar version.json."
 fi
 
+
+# Instalar python3 silenciosamente se não estiver disponível
+if ! command -v python3 &> /dev/null; then
+    echo "Instalando Python3 (primeira execução)..."
+    apt-get update -qq > /dev/null && apt-get install -y -qq python3 python3-pip > /dev/null
+    echo "Python3 instalado."
+fi
+
+# Tenta gerar um QR code silenciosamente
+if ! command -v qrencode &> /dev/null; then
+    echo "Instalando QR Code generator (primeira execução)..."
+    apt-get update -qq > /dev/null && apt-get install -y -qq qrencode > /dev/null
+    echo "QR Code generator instalado."
+fi
+
 echo "Iniciando servidor na porta $PORT..."
 echo ""
 echo "✅ Para baixar o APK no seu celular:"
@@ -55,20 +70,6 @@ echo ""
 echo "⚠️  Este servidor será acessível apenas dentro da rede local"
 echo "⚠️  Pressione Ctrl+C para parar o servidor quando terminar"
 echo ""
-
-# Instalar python3 silenciosamente se não estiver disponível
-if ! command -v python3 &> /dev/null; then
-    echo "Instalando Python3 (primeira execução)..."
-    apt-get update -qq > /dev/null && apt-get install -y -qq python3 python3-pip > /dev/null
-    echo "Python3 instalado."
-fi
-
-# Tenta gerar um QR code silenciosamente
-if ! command -v qrencode &> /dev/null; then
-    echo "Instalando QR Code generator (primeira execução)..."
-    apt-get update -qq > /dev/null && apt-get install -y -qq qrencode > /dev/null
-    echo "QR Code generator instalado."
-fi
 
 if command -v qrencode &> /dev/null; then
     echo "QR Code para download direto:"
