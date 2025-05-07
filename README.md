@@ -57,29 +57,37 @@ Projeto simplificado para criação de um aplicativo android para leitura de có
 
 ## Instalação
 
-1. **Iniciar os containers**:
+Para instalar, siga os passos pelo terminal.
+
+1. **Clonar repositório**:
    ```bash
-   docker-compose up -d
+   git clone https://github.com/mvmvasconcelos/barcode-scanner ./barcode-scanner
    ```
 
-2. **Acessar o container Flutter**:
+2. **Criar e iniciar o container**:
+   ```bash
+   cd barcode-scanner
+   docker-compose up -d --build
+   ```
+
+3. **Acessar o container Flutter**:
    ```bash
    docker-compose exec flutter bash
    ```
 
-3. **Executar o script de configuração**:
-   Dentro do container, execute o script abaixo:
+4. **Executar o script de configuração**:
+   Estando dentro do container, execute o script de setup:
    ```bash
    ./setup.sh
    ```
+   > Pode demorar alguns minutos
 
-4. **Compilar o aplicativo pela primeira vez**:
-   Dentro do container, execute o script abaixo:
+5. **Compilar o aplicativo pela primeira vez**:
+   Ainda dentro do container, execute o script abaixo:
    ```bash
    ./build-apk.sh
    ```
-   
-> **Nota**: Haverá alguns erros e pode demorar até baixar todos os pacotes necessários.
+> **Nota**: Esta etapa demorará alguns minutos e ocorrerá alguns erros, já que os pacotes necessários serão baixados e instalados no container.
 
 ---
 

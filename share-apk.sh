@@ -161,6 +161,7 @@ cat > public/index.html << EOF
 EOF
 
 echo "Página web de download criada. Acesse http://$IP_ADDRESS:$PORT/ no navegador."
+echo "Após os downloads e atualizações serem feitas, pode encerrar utilizando CTRL+C"
 echo ""
 
 # Inicia um servidor Python simples na pasta public

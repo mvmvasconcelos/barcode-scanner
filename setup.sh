@@ -17,4 +17,4 @@ if ! grep -q "flutter_barcode_scanner" pubspec.yaml; then
 fi
 
 echo "Configuração concluída!"
-echo "Para iniciar o desenvolvimento, execute: flutter run"
+echo "Execute ./build-apk.sh para compilar o projeto pela primeira vez"
