@@ -3,10 +3,6 @@
 */
 .*
 
-# Não ignorar diretórios essenciais
-!lib/
-!assets/
-
 # Não ignorar arquivos de configuração específicos
 !.gitignore
 !pubspec.yaml
@@ -22,6 +18,7 @@
 !build-apk.sh
 !share-apk.sh
 !setup.sh
+!bash.sh
 
 # Não ignorar diretório android e seus arquivos específicos
 !android/
@@ -37,7 +34,9 @@
 !public/favicon.ico
 
 # Importar todo o código fonte em lib e assets
+!lib/
 !lib/**
+!assets/
 !assets/**
 
 # Ignorar arquivos compilados e de build em qualquer pasta
