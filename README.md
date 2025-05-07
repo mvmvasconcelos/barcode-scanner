@@ -87,7 +87,7 @@ Para instalar, siga os passos pelo terminal.
    ```bash
    ./build-apk.sh
    ```
-> **Nota**: Esta etapa demorará alguns minutos e ocorrerá alguns erros, já que os pacotes necessários serão baixados e instalados no container.
+   > **Nota**: Esta etapa demorará alguns minutos e ocorrerá alguns erros, já que os pacotes necessários serão baixados e instalados no container.
 
 ---
 

@@ -5,12 +5,14 @@
 
 # Não ignorar diretórios essenciais
 !lib/
+!assets/
 
 # Não ignorar arquivos de configuração específicos
 !.gitignore
 !pubspec.yaml
 !analysis_options.yaml
 !README.md
+!ROADMAP.md
 
 # Não ignorar arquivos Docker/configuração
 !Dockerfile
@@ -21,13 +23,22 @@
 !share-apk.sh
 !setup.sh
 
-# Arquivos específicos do Android que devemos manter
-!android/app/build.gradle
+# Não ignorar diretório android e seus arquivos específicos
+!android/
+!android/app/
+!android/app/src/
+!android/app/src/main/
 !android/app/src/main/AndroidManifest.xml
+!android/app/build.gradle
 !android/build.gradle
 
-# Importar todo o código fonte em lib
+# Não ignorar diretório public e favicon.ico
+!public/
+!public/favicon.ico
+
+# Importar todo o código fonte em lib e assets
 !lib/**
+!assets/**
 
 # Ignorar arquivos compilados e de build em qualquer pasta
 **/*.apk

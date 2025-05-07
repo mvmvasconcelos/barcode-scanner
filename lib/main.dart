@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:yaml/yaml.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'update_service.dart';
 
 void main() {
@@ -92,16 +93,74 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<ScannerProvider>(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configurações'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: colorScheme.primaryContainer,
       ),
-      body: const Center(
-        child: Text(
-          'Em breve',
-          style: TextStyle(fontSize: 18),
-        ),
+      body: ListView(
+        children: [
+          // Seção de feedback
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 16, right: 16),
+            child: Text(
+              'Feedback',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+            ),
+          ),
+          
+          // Opção de feedback háptico (vibração)
+          ListTile(
+            leading: Icon(
+              Icons.vibration,
+              color: provider.hapticFeedbackEnabled ? colorScheme.primary : colorScheme.outline,
+            ),
+            title: const Text('Feedback háptico (vibração)'),
+            subtitle: const Text('Vibração ao escanear um código'),
+            trailing: Switch(
+              value: provider.hapticFeedbackEnabled,
+              onChanged: (value) => provider.setHapticFeedback(value),
+              activeColor: colorScheme.primary,
+            ),
+          ),
+          
+          // Opção de feedback sonoro
+          ListTile(
+            leading: Icon(
+              Icons.volume_up,
+              color: provider.soundFeedbackEnabled ? colorScheme.primary : colorScheme.outline,
+            ),
+            title: const Text('Feedback sonoro'),
+            subtitle: const Text('Som ao escanear um código'),
+            trailing: Switch(
+              value: provider.soundFeedbackEnabled,
+              onChanged: (value) => provider.setSoundFeedback(value),
+              activeColor: colorScheme.primary,
+            ),
+          ),
+          
+          const Divider(),
+          
+          // Nota informativa
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'As configurações são aplicadas imediatamente e salvas automaticamente.',
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: colorScheme.outline,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -312,14 +371,25 @@ class _AboutPageState extends State<AboutPage> {
         _isDownloading = false;
         _updateMessage = result.message;
         
-        if (!result.success && result.error != null) {
-          _updateMessage += '\nErro: ${result.error}';
+        // Verificar se a instalação foi iniciada com sucesso
+        if (result.success) {
+          _updateMessage = 'Instalação iniciada. Por favor, siga as instruções na tela.';
+          
+          // Mostrar um diálogo explicativo sobre o processo de instalação
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) {
+              _showInstallationInstructionsDialog();
+            }
+          });
+        } else {
+          // Se não foi possível iniciar a instalação, mostrar o erro específico
+          _updateMessage = 'Não foi possível iniciar a instalação: ${result.error ?? 'Erro desconhecido'}';
         }
       });
       
       // Esconder mensagem após alguns segundos se não for sucesso
       if (!result.success) {
-        Future.delayed(const Duration(seconds: 5), () {
+        Future.delayed(const Duration(seconds: 8), () {
           if (mounted) {
             setState(() {
               _showUpdateMessage = false;
@@ -328,6 +398,40 @@ class _AboutPageState extends State<AboutPage> {
         });
       }
     }
+  }
+  
+  // Diálogo com instruções para a instalação
+  void _showInstallationInstructionsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Instalando atualização'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Uma janela do sistema para instalação do aplicativo será exibida.'),
+            SizedBox(height: 12),
+            Text('Por favor, siga estas etapas:'),
+            SizedBox(height: 8),
+            Text('1. Toque em "Instalar" quando solicitado'),
+            Text('2. Se solicitado, conceda permissão para instalar o aplicativo'),
+            Text('3. Aguarde a conclusão da instalação'),
+            Text('4. Toque em "Abrir" para iniciar o aplicativo atualizado'),
+            SizedBox(height: 12),
+            Text('Nota: Se a janela de instalação não aparecer, verifique as notificações do seu dispositivo.', 
+              style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('ENTENDI'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -389,7 +493,7 @@ class _AboutPageState extends State<AboutPage> {
                       ),
                       const SizedBox(height: 40),
                       const Text(
-                        'Desenvolvido pelo IFSUL',
+                        'Desenvolvido em IFSul Câmpus Venâncio Aires',
                         style: TextStyle(fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 60),
@@ -534,6 +638,8 @@ class HomePage extends StatelessWidget {
 
   Future<void> _scanBarcode(BuildContext context) async {
     final provider = Provider.of<ScannerProvider>(context, listen: false);
+    AudioPlayer? player;
+    
     try {
       final barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
         '#1B5E20', // Cor do botão (verde IFSUL)
@@ -545,14 +651,89 @@ class HomePage extends StatelessWidget {
       // Se o usuário cancelou o scan
       if (barcodeScanRes == '-1') return;
       
+      // Adicionar o código escaneado antes de qualquer feedback
       provider.addScan(barcodeScanRes);
-    } on PlatformException {
+      
+      // Depois do scan bem-sucedido, dar feedback
+      // Feedback háptico - IMPLEMENTAÇÃO REFORÇADA
+      if (provider.hapticFeedbackEnabled) {
+        try {
+          debugPrint('Tentando feedback háptico (abordagem 1)...');
+          // Primeira abordagem: vibração mais forte e duradoura
+          await HapticFeedback.heavyImpact();
+          
+          // Segunda abordagem: múltiplas vibrações em sequência
+          await Future.delayed(const Duration(milliseconds: 100));
+          await HapticFeedback.vibrate();
+          
+          // Terceira abordagem: vibração seletiva (mais compatível com certos dispositivos)
+          await Future.delayed(const Duration(milliseconds: 80));
+          await HapticFeedback.selectionClick();
+          
+          debugPrint('Feedback háptico concluído');
+        } catch (hapticError) {
+          debugPrint('⚠️ Erro no feedback háptico: $hapticError');
+        }
+      }
+      
+      // Feedback sonoro - Já está funcionando
+      if (provider.soundFeedbackEnabled) {
+        try {
+          debugPrint('Iniciando feedback sonoro...');
+          player = AudioPlayer();
+          
+          // Configurar volume antes de reproduzir
+          await player.setVolume(0.5);
+          
+          // Tentar reproduzir o som com caminho explícito
+          await player.play(AssetSource('sounds/beep.mp3'));
+          debugPrint('Feedback sonoro iniciado');
+          
+          // Aguardar um curto período para garantir que o som seja reproduzido
+          await Future.delayed(const Duration(milliseconds: 300));
+          debugPrint('Feedback sonoro concluído');
+        } catch (audioError) {
+          debugPrint('⚠️ Erro no feedback sonoro: $audioError');
+          // Tentar método alternativo se o primeiro falhar
+          try {
+            await player?.stop();
+            await player?.dispose();
+            
+            // Criar um novo player e tentar novamente com uma abordagem diferente
+            player = AudioPlayer();
+            await player.setSourceAsset('sounds/beep.mp3');
+            await player.resume();
+            debugPrint('Feedback sonoro alternativo concluído');
+          } catch (fallbackError) {
+            debugPrint('⚠️ Erro no feedback sonoro alternativo: $fallbackError');
+          }
+        }
+      }
+    } on PlatformException catch (e) {
+      debugPrint('Erro de plataforma ao escanear: $e');
       // Tratar erros de plataforma
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Falha ao scanear. Tente novamente.'),
         ),
       );
+    } catch (e) {
+      debugPrint('Erro ao escanear: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: ${e.toString()}'),
+        ),
+      );
+    } finally {
+      // Garantir que o player seja descartado se foi criado
+      try {
+        if (player != null) {
+          await player.dispose();
+          debugPrint('AudioPlayer descartado com sucesso');
+        }
+      } catch (e) {
+        debugPrint('Erro ao descartar AudioPlayer: $e');
+      }
     }
   }
 
@@ -838,10 +1019,17 @@ class ScannerProvider extends ChangeNotifier {
   List<String> _scans = [];
   Set<int> _selectedIndices = {};
   bool _isSelectionMode = false;
+  bool _hapticFeedbackEnabled = true;
+  bool _soundFeedbackEnabled = true;
   
   ScannerProvider() {
     _loadScans();
+    _loadFeedbackPreferences();
   }
+  
+  // Getters para as configurações de feedback
+  bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
+  bool get soundFeedbackEnabled => _soundFeedbackEnabled;
   
   List<String> get scans => _scans;
   bool get isSelectionMode => _isSelectionMode;
@@ -939,6 +1127,30 @@ class ScannerProvider extends ChangeNotifier {
     _selectedIndices.clear();
     _isSelectionMode = false;
     _saveScans();
+    notifyListeners();
+  }
+  
+  // Carregar preferências de feedback
+  Future<void> _loadFeedbackPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hapticFeedbackEnabled = prefs.getBool('haptic_feedback_enabled') ?? true;
+    _soundFeedbackEnabled = prefs.getBool('sound_feedback_enabled') ?? true;
+    notifyListeners();
+  }
+  
+  // Configurar feedback háptico
+  Future<void> setHapticFeedback(bool enabled) async {
+    _hapticFeedbackEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('haptic_feedback_enabled', enabled);
+    notifyListeners();
+  }
+  
+  // Configurar feedback sonoro
+  Future<void> setSoundFeedback(bool enabled) async {
+    _soundFeedbackEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_feedback_enabled', enabled);
     notifyListeners();
   }
 }

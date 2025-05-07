@@ -450,19 +450,76 @@ class UpdateService {
   Future<UpdateResult> _installApk(String filePath) async {
     try {
       if (Platform.isAndroid) {
-        // No Android, usamos o install_plugin
-        await InstallPlugin.installApk(filePath);
-        developer.log('UpdateService: Instalação iniciada');
+        // Verificar se o arquivo existe
+        final file = File(filePath);
+        if (!await file.exists()) {
+          developer.log('UpdateService: Arquivo APK não encontrado: $filePath');
+          return UpdateResult(
+            success: false,
+            message: 'Arquivo de instalação não encontrado',
+            error: 'APK não existe no caminho especificado',
+          );
+        }
+        
+        // Verificar tamanho do arquivo (deve ser maior que 1MB para ser um APK válido)
+        final fileSize = await file.length();
+        if (fileSize < 1024 * 1024) {
+          developer.log('UpdateService: Arquivo APK muito pequeno: $fileSize bytes');
+          return UpdateResult(
+            success: false,
+            message: 'Arquivo de instalação inválido',
+            error: 'Tamanho do APK muito pequeno',
+          );
+        }
+
+        developer.log('UpdateService: Iniciando instalação do APK: $filePath (${fileSize ~/ 1024} KB)');
+        
+        // Primeiro, tentar com InstallPlugin
+        try {
+          await InstallPlugin.installApk(filePath);
+          developer.log('UpdateService: Instalação iniciada via InstallPlugin');
+          return UpdateResult(
+            success: true,
+            message: 'Instalação iniciada',
+          );
+        } catch (e) {
+          // Se falhar, tentar com OpenFilex como fallback
+          developer.log('UpdateService: Erro ao instalar com InstallPlugin: $e. Tentando com OpenFilex...');
+          
+          final result = await OpenFilex.open(
+            filePath,
+            type: 'application/vnd.android.package-archive',
+            uti: 'public.android-package-archive',
+          );
+          
+          if (result.type == ResultType.done) {
+            developer.log('UpdateService: Instalação iniciada via OpenFilex');
+            return UpdateResult(
+              success: true,
+              message: 'Instalação iniciada',
+            );
+          } else {
+            developer.log('UpdateService: Falha ao abrir APK: ${result.message}');
+            return UpdateResult(
+              success: false,
+              message: 'Não foi possível iniciar a instalação',
+              error: result.message,
+            );
+          }
+        }
       } else {
         // Em outras plataformas, tentamos abrir o arquivo
-        await OpenFilex.open(filePath);
-        developer.log('UpdateService: Arquivo aberto para instalação');
+        final result = await OpenFilex.open(filePath);
+        developer.log('UpdateService: Tentativa de abrir arquivo para instalação: ${result.message}');
+        
+        return UpdateResult(
+          success: result.type == ResultType.done,
+          message: result.type == ResultType.done 
+              ? 'Instalação iniciada' 
+              : 'Não foi possível iniciar a instalação',
+          error: result.type != ResultType.done ? result.message : null,
+        );
       }
-      
-      return UpdateResult(
-        success: true,
-        message: 'Instalação iniciada',
-      );
     } catch (e) {
       developer.log('UpdateService: Erro ao instalar: $e');
       return UpdateResult(

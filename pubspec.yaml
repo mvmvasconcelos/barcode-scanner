@@ -2,7 +2,7 @@ name: barcode_scanner
 description: A new Flutter project.
 publish_to: 'none'
 
-version: 1.0.0+0
+version: 1.0.3+6
 
 environment:
   sdk: '>=3.1.5 <4.0.0'
@@ -18,6 +18,7 @@ dependencies:
   intl: ^0.18.1
   yaml: ^3.1.2
   package_info_plus: ^4.2.0
+  audioplayers: ^5.2.1
   
   # Dependências para verificação e instalação de atualizações
   http: ^1.1.0
@@ -37,3 +38,4 @@ flutter:
   uses-material-design: true
   assets:
     - pubspec.yaml
+    - assets/sounds/beep.mp3
