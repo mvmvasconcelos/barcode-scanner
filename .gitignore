@@ -17,7 +17,7 @@
 !docker-compose.yml
 
 # Não ignorar scripts de build
-!build-offline-apk.sh
+!build-apk.sh
 !share-apk.sh
 !setup.sh
 
