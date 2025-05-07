@@ -200,139 +200,145 @@ class HomePage extends StatelessWidget {
                 ),
               ],
       ),
-      body: provider.scans.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.qr_code_scanner,
-                    size: 80,
-                    color: colorScheme.primary.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Nenhum código escaneado.\nAperte o botão abaixo para começar.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ],
+      body: Column(
+        children: [
+          // Botão para o modo avançado - sempre visível
+          if (!provider.isSelectionMode)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).pushNamed('/advanced'),
+                icon: const Icon(Icons.view_module),
+                label: const Text('Modo Avançado'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
               ),
-            )
-          : Column(
-              children: [
-                if (provider.isSelectionMode) 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: provider.areAllSelected(),
-                          onChanged: (value) => provider.selectAll(value ?? false),
-                        ),
-                        Text(
-                          'Selecionar todos (${provider.selectedCount}/${provider.scans.length})',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                // Botão para o modo avançado
-                if (!provider.isSelectionMode)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.of(context).pushNamed('/advanced'),
-                      icon: const Icon(Icons.view_module),
-                      label: const Text('Modo Avançado'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.secondaryContainer,
-                        foregroundColor: colorScheme.onSecondaryContainer,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        minimumSize: const Size(double.infinity, 50),
+            ),
+          Expanded(
+            child: provider.scans.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_scanner,
+                        size: 80,
+                        color: colorScheme.primary.withOpacity(0.5),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Nenhum código escaneado.\nAperte o botão abaixo para começar.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ],
                   ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: provider.scans.length,
-                    itemBuilder: (context, index) {
-                      final scan = provider.scans[index];
-                      final isSelected = provider.isSelected(index);
-                      
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        elevation: isSelected ? 4 : 1,
-                        color: isSelected ? colorScheme.primaryContainer.withOpacity(0.3) : null,
-                        child: InkWell(
-                          onLongPress: () {
-                            if (!provider.isSelectionMode) {
-                              provider.toggleSelectionMode(true);
-                              provider.toggleSelection(index);
-                            }
-                          },
-                          onTap: () {
-                            if (provider.isSelectionMode) {
-                              provider.toggleSelection(index);
-                            }
-                          },
-                          child: ListTile(
-                            leading: provider.isSelectionMode
-                                ? Checkbox(
-                                    value: isSelected,
-                                    onChanged: (bool? value) {
-                                      provider.toggleSelection(index);
-                                    },
-                                  )
-                                : CircleAvatar(
-                                    backgroundColor: colorScheme.primary,
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
+                )
+              : Column(
+                  children: [
+                    if (provider.isSelectionMode) 
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: provider.areAllSelected(),
+                              onChanged: (value) => provider.selectAll(value ?? false),
+                            ),
+                            Text(
+                              'Selecionar todos (${provider.selectedCount}/${provider.scans.length})',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: provider.scans.length,
+                        itemBuilder: (context, index) {
+                          final scan = provider.scans[index];
+                          final isSelected = provider.isSelected(index);
+                          
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            elevation: isSelected ? 4 : 1,
+                            color: isSelected ? colorScheme.primaryContainer.withOpacity(0.3) : null,
+                            child: InkWell(
+                              onLongPress: () {
+                                if (!provider.isSelectionMode) {
+                                  provider.toggleSelectionMode(true);
+                                  provider.toggleSelection(index);
+                                }
+                              },
+                              onTap: () {
+                                if (provider.isSelectionMode) {
+                                  provider.toggleSelection(index);
+                                }
+                              },
+                              child: ListTile(
+                                leading: provider.isSelectionMode
+                                    ? Checkbox(
+                                        value: isSelected,
+                                        onChanged: (bool? value) {
+                                          provider.toggleSelection(index);
+                                        },
+                                      )
+                                    : CircleAvatar(
+                                        backgroundColor: colorScheme.primary,
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: const TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                title: Text(
+                                  scan,
+                                  style: TextStyle(
+                                    fontSize: 16, 
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                   ),
-                            title: Text(
-                              scan,
-                              style: TextStyle(
-                                fontSize: 16, 
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                trailing: provider.isSelectionMode
+                                    ? null
+                                    : Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.copy, size: 20),
+                                            onPressed: () {
+                                              Clipboard.setData(ClipboardData(text: scan))
+                                                  .then((_) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Código copiado'),
+                                                    behavior: SnackBarBehavior.floating,
+                                                  ),
+                                                );
+                                              });
+                                            },
+                                            tooltip: 'Copiar código',
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.delete, size: 20, color: colorScheme.error),
+                                            onPressed: () => provider.removeScan(index),
+                                            tooltip: 'Excluir código',
+                                          ),
+                                        ],
+                                      ),
                               ),
                             ),
-                            trailing: provider.isSelectionMode
-                                ? null
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.copy, size: 20),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: scan))
-                                              .then((_) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Código copiado'),
-                                                behavior: SnackBarBehavior.floating,
-                                              ),
-                                            );
-                                          });
-                                        },
-                                        tooltip: 'Copiar código',
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.delete, size: 20, color: colorScheme.error),
-                                        onPressed: () => provider.removeScan(index),
-                                        tooltip: 'Excluir código',
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: provider.isSelectionMode
             ? null
