@@ -17,7 +17,7 @@ class AboutPage extends StatefulWidget {
   State<AboutPage> createState() => _AboutPageState();
 }
 
-class _AboutPageState extends State<AboutPage> {
+class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _showSettings = false;
   
@@ -29,13 +29,32 @@ class _AboutPageState extends State<AboutPage> {
     super.initState();
     _loadAppInfo();
     _loadServerSettings();
+    // Registrar para observar mudanças no ciclo de vida do app
+    WidgetsBinding.instance.addObserver(this);
+    // Verificar status da atualização quando a tela é aberta
+    Future.microtask(() {
+      final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
+      updateProvider.checkIfUpdated();
+    });
   }
 
   @override
   void dispose() {
     _ipController.dispose();
     _portController.dispose();
+    // Remover observador ao destruir o widget
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quando o app é retomado do background
+    if (state == AppLifecycleState.resumed) {
+      // Verificar se a atualização foi concluída
+      final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
+      updateProvider.checkIfUpdated();
+    }
   }
   
   Future<void> _loadAppInfo() async {

@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/update_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class UpdateProvider extends ChangeNotifier {
   final UpdateService _updateService = UpdateService();
@@ -15,6 +16,7 @@ class UpdateProvider extends ChangeNotifier {
   double _downloadProgress = 0;
   String _updateMessage = '';
   bool _showUpdateMessage = false;
+  String? _lastInstalledVersion;
   
   // Getters
   bool get isLoading => _isLoading;
@@ -26,6 +28,40 @@ class UpdateProvider extends ChangeNotifier {
   String get serverIp => _updateService.serverIp;
   int get serverPort => _updateService.serverPort;
   
+  UpdateProvider() {
+    _checkCurrentVersion();
+  }
+  
+  // Verifica a versão atual para rastrear mudanças
+  Future<void> _checkCurrentVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      _lastInstalledVersion = packageInfo.version;
+    } catch (e) {
+      // Falha ao obter a versão não é crítico
+    }
+  }
+  
+  /// Verifica se o app foi atualizado desde o último uso
+  Future<void> checkIfUpdated() async {
+    try {
+      if (_lastInstalledVersion != null) {
+        final packageInfo = await PackageInfo.fromPlatform();
+        final currentVersion = packageInfo.version;
+        
+        // Se a versão mudou, a atualização foi concluída
+        if (currentVersion != _lastInstalledVersion) {
+          _showUpdateMessage = false;
+          _isDownloading = false;
+          _lastInstalledVersion = currentVersion;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      // Falha ao obter a versão não é crítico
+    }
+  }
+
   /// Define o estado de carregamento
   void setLoading(bool value) {
     _isLoading = value;
@@ -34,6 +70,9 @@ class UpdateProvider extends ChangeNotifier {
   
   /// Verifica por atualizações disponíveis
   Future<UpdateCheckResult> checkForUpdates() async {
+    // Verificar se o app foi atualizado após retornar da tela de instalação
+    await checkIfUpdated();
+    
     if (_isCheckingForUpdates || _isDownloading) {
       return UpdateCheckResult(
         status: UpdateStatus.inProgress,
@@ -88,6 +127,8 @@ class UpdateProvider extends ChangeNotifier {
       });
     } else {
       _updateMessage = 'Instalação iniciada. Por favor, siga as instruções na tela.';
+      // Salvar a versão atual para comparação após a instalação
+      _checkCurrentVersion();
     }
     
     notifyListeners();

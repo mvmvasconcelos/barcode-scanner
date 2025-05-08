@@ -8,10 +8,40 @@ import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:provider/provider.dart';
 import '../providers/scanner_provider.dart';
+import '../providers/update_provider.dart';
 import '../utils/feedback_utils.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    // Registrar para observar mudanças no ciclo de vida do app
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // Remover observador ao destruir o widget
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quando o app é retomado do background
+    if (state == AppLifecycleState.resumed) {
+      // Verificar se a atualização foi concluída
+      final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
+      updateProvider.checkIfUpdated();
+    }
+  }
 
   Future<void> _scanBarcode(BuildContext context) async {
     final provider = Provider.of<ScannerProvider>(context, listen: false);
@@ -202,7 +232,9 @@ class HomePage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Botão para o modo avançado - sempre visível
+          // Botão para o modo avançado - comentado temporariamente conforme o ROADMAP
+          // Descomentar quando a funcionalidade estiver pronta para ser lançada
+          /*
           if (!provider.isSelectionMode)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -218,6 +250,7 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
+          */
           Expanded(
             child: provider.scans.isEmpty
               ? Center(

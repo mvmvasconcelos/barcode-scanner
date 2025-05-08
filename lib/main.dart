@@ -52,7 +52,32 @@ class BarcodeApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         '/settings': (context) => const SettingsPage(),
         '/about': (context) => const AboutPage(),
-        '/advanced': (context) => const AdvancedPage(),
+        // Temporariamente redirecionando o modo avançado para uma tela de "Em breve"
+        '/advanced': (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Modo Avançado'),
+          ),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.construction, size: 80, color: Colors.amber),
+                SizedBox(height: 16),
+                Text(
+                  'Funcionalidade em desenvolvimento',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'O Modo Avançado estará disponível em breve.',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       },
     );
   }
