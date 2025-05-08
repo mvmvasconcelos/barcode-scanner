@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -78,10 +77,7 @@ class UpdateService {
       final prefs = await SharedPreferences.getInstance();
       _serverIp = prefs.getString(_prefServerIpKey) ?? _defaultServerIp;
       _serverPort = prefs.getInt(_prefServerPortKey) ?? _defaultServerPort;
-      developer.log('UpdateService: Configurações carregadas - IP: $_serverIp, Porta: $_serverPort');
-    } catch (e) {
-      developer.log('UpdateService: Erro ao carregar configurações: $e');
-    }
+    } catch (e) {}
   }
 
   // Método para verificar se há atualizações disponíveis
@@ -94,8 +90,6 @@ class UpdateService {
     }
 
     _isChecking = true;
-    developer.log('UpdateService: Iniciando verificação de atualizações');
-    developer.log('UpdateService: Servidor: $_serverUrl');
     
     try {
       // Verificar conexão com a internet primeiro
@@ -112,7 +106,6 @@ class UpdateService {
       // Obter a versão atual do aplicativo instalado
       final PackageInfo packageInfo = await PackageInfo.fromPlatform();
       final String currentVersion = packageInfo.version;
-      developer.log('UpdateService: Versão atual: $currentVersion');
       
       // Verificar se o servidor está online
       bool isServerOnline = false;
@@ -123,8 +116,6 @@ class UpdateService {
       
       for (int i = 0; i < _connectionRetries; i++) {
         try {
-          developer.log('UpdateService: Tentando conectar ao servidor (tentativa ${i+1})');
-          
           // Usar reqwest que é mais robusto para ambientes móveis
           final response = await client.get(
             Uri.parse(_serverUrl),
@@ -133,15 +124,12 @@ class UpdateService {
           
           if (response.statusCode < 400) {
             isServerOnline = true;
-            developer.log('UpdateService: Servidor online! Status: ${response.statusCode}');
             break;
           } else {
             errorMessage = 'Erro de servidor: ${response.statusCode}';
-            developer.log('UpdateService: $errorMessage');
           }
         } catch (e) {
           errorMessage = e.toString();
-          developer.log('UpdateService: Erro de conexão: $errorMessage');
           
           // Mostrar mensagem mais amigável para o erro específico
           if (e is SocketException || e.toString().contains('SocketException')) {
@@ -167,8 +155,6 @@ class UpdateService {
       
       // Tentar buscar informações sobre a versão mais recente
       try {
-        developer.log('UpdateService: Buscando informações de versão em $_versionUrl');
-        
         // Criar um novo cliente para esta solicitação
         final versionClient = http.Client();
         try {
@@ -178,46 +164,43 @@ class UpdateService {
           ).timeout(_connectionTimeout);
           
           if (response.statusCode == 200) {
-            developer.log('UpdateService: Dados de versão recebidos: ${response.body}');
             final Map<String, dynamic> versionData = 
                 Map<String, dynamic>.from(await _parseJsonOrYaml(response.body));
             
             final String latestVersion = versionData['version'] ?? '0.0.0';
-            developer.log('UpdateService: Versão mais recente: $latestVersion');
+            final String latestBuildNumber = versionData['buildNumber']?.toString() ?? '0';
             
-            // Comparar versões
-            final bool updateAvailable = _isNewerVersion(latestVersion, currentVersion);
+            // Formar a versão completa com o número de build para comparação
+            final String latestFullVersion = "$latestVersion+$latestBuildNumber";
+            
+            // Comparar versões (incluindo o número de build)
+            final bool updateAvailable = _isNewerVersion(latestFullVersion, currentVersion + "+" + packageInfo.buildNumber);
             
             _isChecking = false;
             
             if (updateAvailable) {
-              developer.log('UpdateService: Atualização disponível');
               return UpdateCheckResult(
                 status: UpdateStatus.updateAvailable,
-                message: 'Nova versão disponível: $latestVersion',
-                latestVersion: latestVersion,
+                message: 'Nova versão disponível: $latestVersion (build $latestBuildNumber)',
+                latestVersion: latestFullVersion,
               );
             } else {
-              developer.log('UpdateService: Aplicativo atualizado');
               return UpdateCheckResult(
                 status: UpdateStatus.upToDate,
-                message: 'Seu aplicativo está atualizado (versão $currentVersion)',
+                message: 'Seu aplicativo está atualizado (versão $currentVersion build ${packageInfo.buildNumber})',
               );
             }
           } else {
             // Se não conseguir obter o arquivo de versão, tenta obter direto do APK
-            developer.log('UpdateService: Erro ao obter arquivo version.json, verificando APK');
             final bool apkExists = await _doesApkExist();
             
             if (apkExists) {
-              developer.log('UpdateService: APK encontrado, assumindo atualização disponível');
               _isChecking = false;
               return UpdateCheckResult(
                 status: UpdateStatus.updateAvailable,
                 message: 'Nova versão disponível',
               );
             } else {
-              developer.log('UpdateService: APK não encontrado');
               _isChecking = false;
               return UpdateCheckResult(
                 status: UpdateStatus.upToDate,
@@ -229,7 +212,6 @@ class UpdateService {
           versionClient.close();
         }
       } catch (e) {
-        developer.log('UpdateService: Erro ao verificar atualizações: $e');
         _isChecking = false;
         return UpdateCheckResult(
           status: UpdateStatus.error,
@@ -238,7 +220,6 @@ class UpdateService {
         );
       }
     } catch (e) {
-      developer.log('UpdateService: Erro inesperado: $e');
       _isChecking = false;
       return UpdateCheckResult(
         status: UpdateStatus.error,
@@ -261,7 +242,6 @@ class UpdateService {
 
     _isDownloading = true;
     _downloadProgress = 0;
-    developer.log('UpdateService: Iniciando download de $_apkUrl');
     
     try {
       // Verificar conexão com a internet primeiro
@@ -284,10 +264,27 @@ class UpdateService {
         );
       }
       
-      // Obter diretório temporário para salvar o APK
-      final Directory tempDir = await getTemporaryDirectory();
-      final String savePath = '${tempDir.path}/update.apk';
-      developer.log('UpdateService: Salvando APK em $savePath');
+      // Usar o diretório de Downloads para salvar o APK (mais confiável que o diretório temp)
+      Directory? storageDir;
+      try {
+        if (Platform.isAndroid) {
+          // Tenta usar o diretório de downloads que é mais confiável para APKs
+          storageDir = await getExternalStorageDirectory();
+        }
+      } catch (e) {
+        // Falha silenciosa, usaremos o diretório temp abaixo
+      }
+      
+      // Se não conseguir o diretório de downloads, usa o temporário
+      final Directory saveDir = storageDir ?? await getTemporaryDirectory();
+      final String fileName = "barcode_scanner_update.apk"; // Nome de arquivo fixo para evitar problemas de caracteres especiais
+      final String savePath = '${saveDir.path}/$fileName';
+      
+      // Remover arquivo antigo se existir
+      final file = File(savePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
       
       // Criar instância do Dio para download com progresso
       final Dio dio = Dio();
@@ -299,6 +296,7 @@ class UpdateService {
         await dio.download(
           _apkUrl,
           savePath,
+          deleteOnError: true, // Apaga o arquivo se houver erro no download
           onReceiveProgress: (received, total) {
             if (total != -1) {
               _downloadProgress = received / total;
@@ -306,7 +304,6 @@ class UpdateService {
             }
           },
           options: Options(
-            // Impede problemas de cache
             responseType: ResponseType.bytes,
             followRedirects: true,
             validateStatus: (status) {
@@ -315,9 +312,27 @@ class UpdateService {
           ),
         );
         
-        developer.log('UpdateService: Download concluído');
+        // Verificar se o download foi concluído corretamente
+        if (!await file.exists()) {
+          _isDownloading = false;
+          return UpdateResult(
+            success: false,
+            message: 'Erro ao salvar o arquivo de atualização',
+            error: 'Arquivo não encontrado após download',
+          );
+        }
+        
+        // Verificar tamanho do arquivo
+        final int fileSize = await file.length();
+        if (fileSize < 1024 * 1024) { // Menor que 1MB
+          _isDownloading = false;
+          return UpdateResult(
+            success: false,
+            message: 'Arquivo de instalação inválido',
+            error: 'Tamanho do APK muito pequeno: $fileSize bytes',
+          );
+        }
       } catch (e) {
-        developer.log('UpdateService: Erro no download: $e');
         _isDownloading = false;
         
         String errorMsg = 'Erro ao baixar atualização';
@@ -337,13 +352,11 @@ class UpdateService {
       }
       
       // Após o download, instalar o APK
-      developer.log('UpdateService: Instalando APK');
       final result = await _installApk(savePath);
       _isDownloading = false;
       
       return result;
     } catch (e) {
-      developer.log('UpdateService: Erro no processo de download/instalação: $e');
       _isDownloading = false;
       return UpdateResult(
         success: false,
@@ -356,8 +369,6 @@ class UpdateService {
   // Verifica se o servidor está disponível
   Future<bool> _isServerAvailable() async {
     try {
-      developer.log('UpdateService: Verificando disponibilidade do servidor: $_serverUrl');
-      
       final client = http.Client();
       try {
         final response = await client.get(
@@ -366,13 +377,11 @@ class UpdateService {
         ).timeout(_connectionTimeout);
         
         final bool isAvailable = response.statusCode < 400;
-        developer.log('UpdateService: Servidor ${isAvailable ? "disponível" : "indisponível"}');
         return isAvailable;
       } finally {
         client.close();
       }
     } catch (e) {
-      developer.log('UpdateService: Erro ao verificar servidor: $e');
       return false;
     }
   }
@@ -380,8 +389,6 @@ class UpdateService {
   // Verifica se o APK existe no servidor
   Future<bool> _doesApkExist() async {
     try {
-      developer.log('UpdateService: Verificando existência do APK: $_apkUrl');
-      
       final client = http.Client();
       try {
         final response = await client.head(
@@ -390,50 +397,56 @@ class UpdateService {
         ).timeout(_connectionTimeout);
         
         final bool exists = response.statusCode < 400;
-        developer.log('UpdateService: APK ${exists ? "encontrado" : "não encontrado"}');
         return exists;
       } finally {
         client.close();
       }
     } catch (e) {
-      developer.log('UpdateService: Erro ao verificar APK: $e');
       return false;
     }
   }
   
-  // Verifica se uma versão é mais recente que outra
-  bool _isNewerVersion(String newVersion, String currentVersion) {
-    if (newVersion == currentVersion) return false;
+  // Verifica se uma versão é diferente da atual (permitindo upgrade ou downgrade)
+  bool _isNewerVersion(String serverVersion, String currentVersion) {
+    // Se as versões são completamente diferentes (incluindo o build number), considerar como uma atualização
+    if (serverVersion != currentVersion) {
+      final bool isUpgrade = _compareVersionValues(serverVersion, currentVersion) > 0;
+      // Sempre retorna true quando as versões são diferentes, permitindo tanto upgrade quanto downgrade
+      return true;
+    }
     
-    // Separar a versão semântica (X.Y.Z) do número de build (N)
-    final String cleanNewVersion = newVersion.split('+').first;
-    final int? newBuild = int.tryParse(newVersion.contains('+') ? newVersion.split('+').last : '0');
+    return false;
+  }
+  
+  // Auxiliar para comparar valores de versão (apenas para fins informativos no log)
+  // Retorna: 1 se v1 > v2, -1 se v1 < v2, 0 se iguais
+  int _compareVersionValues(String v1, String v2) {
+    final String cleanV1 = v1.split('+').first;
+    final String cleanV2 = v2.split('+').first;
     
-    final String cleanCurrentVersion = currentVersion.split('+').first;
-    final int? currentBuild = int.tryParse(currentVersion.contains('+') ? currentVersion.split('+').last : '0');
-    
-    // Primeiro comparar as versões semânticas (X.Y.Z)
-    final List<int> newParts = cleanNewVersion.split('.')
+    final List<int> parts1 = cleanV1.split('.')
         .map((part) => int.tryParse(part) ?? 0).toList();
-    final List<int> currentParts = cleanCurrentVersion.split('.')
+    final List<int> parts2 = cleanV2.split('.')
         .map((part) => int.tryParse(part) ?? 0).toList();
     
-    // Garantir que ambas as listas têm pelo menos 3 elementos (major, minor, patch)
-    while (newParts.length < 3) newParts.add(0);
-    while (currentParts.length < 3) currentParts.add(0);
+    // Garantir que ambas as listas têm pelo menos 3 elementos
+    while (parts1.length < 3) parts1.add(0);
+    while (parts2.length < 3) parts2.add(0);
     
     // Comparar versão por componente
     for (int i = 0; i < 3; i++) {
-      if (newParts[i] > currentParts[i]) {
-        return true;
-      } else if (newParts[i] < currentParts[i]) {
-        return false;
-      }
+      if (parts1[i] > parts2[i]) return 1;
+      if (parts1[i] < parts2[i]) return -1;
     }
     
-    // Se a versão semântica for idêntica, comparar o número de build
-    // Considerar uma atualização se o build for maior
-    return (newBuild ?? 0) > (currentBuild ?? 0);
+    // Se as versões semânticas são iguais, comparar build numbers
+    final int build1 = int.tryParse(v1.contains('+') ? v1.split('+').last : '0') ?? 0;
+    final int build2 = int.tryParse(v2.contains('+') ? v2.split('+').last : '0') ?? 0;
+    
+    if (build1 > build2) return 1;
+    if (build1 < build2) return -1;
+    
+    return 0;
   }
   
   // Verifica e solicita permissões necessárias
@@ -463,7 +476,6 @@ class UpdateService {
         // Verificar se o arquivo existe
         final file = File(filePath);
         if (!await file.exists()) {
-          developer.log('UpdateService: Arquivo APK não encontrado: $filePath');
           return UpdateResult(
             success: false,
             message: 'Arquivo de instalação não encontrado',
@@ -474,7 +486,6 @@ class UpdateService {
         // Verificar tamanho do arquivo (deve ser maior que 1MB para ser um APK válido)
         final fileSize = await file.length();
         if (fileSize < 1024 * 1024) {
-          developer.log('UpdateService: Arquivo APK muito pequeno: $fileSize bytes');
           return UpdateResult(
             success: false,
             message: 'Arquivo de instalação inválido',
@@ -482,45 +493,63 @@ class UpdateService {
           );
         }
 
-        developer.log('UpdateService: Iniciando instalação do APK: $filePath (${fileSize ~/ 1024} KB)');
-        
-        // Primeiro, tentar com InstallPlugin
+        // Estratégia 1: InstallPlugin (versão simples compatível com a biblioteca)
         try {
+          // A biblioteca install_plugin na versão atual só aceita um argumento
           await InstallPlugin.installApk(filePath);
-          developer.log('UpdateService: Instalação iniciada via InstallPlugin');
+          
+          await Future.delayed(const Duration(milliseconds: 500));
           return UpdateResult(
             success: true,
             message: 'Instalação iniciada',
           );
         } catch (e) {
-          // Se falhar, tentar com OpenFilex como fallback
-          developer.log('UpdateService: Erro ao instalar com InstallPlugin: $e. Tentando com OpenFilex...');
-          
+          // Se a estratégia 1 falhar, tentamos a estratégia 2
+        }
+
+        // Estratégia 2: OpenFilex com configurações básicas
+        try {
           final result = await OpenFilex.open(
             filePath,
             type: 'application/vnd.android.package-archive',
             uti: 'public.android-package-archive',
+            // Removido o parâmetro forceOpenWith que não é suportado
           );
           
           if (result.type == ResultType.done) {
-            developer.log('UpdateService: Instalação iniciada via OpenFilex');
+            await Future.delayed(const Duration(milliseconds: 500));
             return UpdateResult(
               success: true,
               message: 'Instalação iniciada',
             );
           } else {
-            developer.log('UpdateService: Falha ao abrir APK: ${result.message}');
-            return UpdateResult(
-              success: false,
-              message: 'Não foi possível iniciar a instalação',
-              error: result.message,
-            );
+            throw Exception(result.message);
           }
+        } catch (e) {
+          // Se a estratégia 2 falhar, tentamos a estratégia 3
+        }
+
+        // Estratégia 3: Método simplificado - última tentativa
+        try {
+          final result = await OpenFilex.open(filePath);
+          if (result.type == ResultType.done) {
+            return UpdateResult(
+              success: true,
+              message: 'Instalação iniciada',
+            );
+          } else {
+            throw Exception(result.message);
+          }
+        } catch (e) {
+          return UpdateResult(
+            success: false,
+            message: 'Não foi possível iniciar a instalação',
+            error: e.toString(),
+          );
         }
       } else {
         // Em outras plataformas, tentamos abrir o arquivo
         final result = await OpenFilex.open(filePath);
-        developer.log('UpdateService: Tentativa de abrir arquivo para instalação: ${result.message}');
         
         return UpdateResult(
           success: result.type == ResultType.done,
@@ -531,7 +560,6 @@ class UpdateService {
         );
       }
     } catch (e) {
-      developer.log('UpdateService: Erro ao instalar: $e');
       return UpdateResult(
         success: false,
         message: 'Erro ao instalar o APK',
@@ -546,12 +574,10 @@ class UpdateService {
       // Tentar parse como JSON
       return json.decode(content);
     } catch (e) {
-      developer.log('UpdateService: Erro ao analisar JSON: $e');
       try {
         // Se falhar, tentar como YAML
         return loadYaml(content);
       } catch (e) {
-        developer.log('UpdateService: Erro ao analisar YAML: $e');
         // Se ambos falharem, retornar um mapa vazio
         return {};
       }

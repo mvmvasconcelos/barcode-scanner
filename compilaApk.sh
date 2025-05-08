@@ -139,7 +139,7 @@ if [ -f "$APK_PATH" ]; then
   echo "Versão: $NEW_VERSION"
   echo ""
   echo "Para compartilhar o APK com seu celular, execute:"
-  echo "./share-apk.sh"
+  echo "./compartilhaApk.sh"
     
   # Copiar o APK para o diretório público
   mkdir -p public/apk
@@ -171,7 +171,7 @@ else
     mkdir -p public/apk
     cp "$DEBUG_APK_PATH" "public/apk/barcode.apk"
     echo "Para compartilhar o APK com seu celular, execute:"
-    echo "./share-apk.sh"
+    echo "./compartilhaApk.sh"
     echo ""
     echo "APK também disponível em: public/apk/barcode.apk"
     echo ""

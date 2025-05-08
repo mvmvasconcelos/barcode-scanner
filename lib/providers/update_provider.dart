@@ -42,6 +42,25 @@ class UpdateProvider extends ChangeNotifier {
     }
   }
   
+  // Compara versões considerando também o build number (parte após o '+')
+  bool _isVersionDifferent(String version1, String version2) {
+    // Se forem exatamente iguais, não há diferença
+    if (version1 == version2) return false;
+    
+    // Separar a versão semântica do número de build
+    final String cleanVersion1 = version1.split('+').first;
+    final int? buildVersion1 = int.tryParse(version1.contains('+') ? version1.split('+').last : '0');
+    
+    final String cleanVersion2 = version2.split('+').first;
+    final int? buildVersion2 = int.tryParse(version2.contains('+') ? version2.split('+').last : '0');
+    
+    // Se as versões semânticas são diferentes, houve uma mudança
+    if (cleanVersion1 != cleanVersion2) return true;
+    
+    // Se as versões semânticas são iguais, verificar o número de build
+    return (buildVersion1 ?? 0) != (buildVersion2 ?? 0);
+  }
+  
   /// Verifica se o app foi atualizado desde o último uso
   Future<void> checkIfUpdated() async {
     try {
@@ -49,8 +68,8 @@ class UpdateProvider extends ChangeNotifier {
         final packageInfo = await PackageInfo.fromPlatform();
         final currentVersion = packageInfo.version;
         
-        // Se a versão mudou, a atualização foi concluída
-        if (currentVersion != _lastInstalledVersion) {
+        // Se a versão mudou (incluindo apenas mudanças no build number), a atualização foi concluída
+        if (_isVersionDifferent(currentVersion, _lastInstalledVersion!)) {
           _showUpdateMessage = false;
           _isDownloading = false;
           _lastInstalledVersion = currentVersion;

@@ -1,6 +1,6 @@
 # Leitor de Código de Barras
 
-[![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)](https://github.com/mvmvasconcelos/)[![Versão](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/ifsul/barcode-scanner) [![Flutter](https://img.shields.io/badge/Flutter-v3.1.5+-02569B?logo=flutter)](https://flutter.dev/) [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Platform](https://img.shields.io/badge/platform-Android-brightgreen.svg)](https://www.android.com/) [![Docker](https://img.shields.io/badge/Docker-Suportado-2496ED?logo=docker)](https://www.docker.com/) [![IFSul](https://img.shields.io/badge/IFSul-Venâncio%20Aires-195128)](https://vairao.ifsul.edu.br/)
+[![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)](https://github.com/mvmvasconcelos/)[![Versão](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/ifsul/barcode-scanner) [![Flutter](https://img.shields.io/badge/Flutter-v3.1.5+-02569B?logo=flutter)](https://flutter.dev/) [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Platform](https://img.shields.io/badge/platform-Android-brightgreen.svg)](https://www.android.com/) [![Docker](https://img.shields.io/badge/Docker-Suportado-2496ED?logo=docker)](https://www.docker.com/) [![IFSul](https://img.shields.io/badge/IFSul-Venâncio%20Aires-195128)](https://vairao.ifsul.edu.br/)
 
 
 Projeto simplificado para criação de um aplicativo android para leitura de código de barras em etiquetas de patrimônio e jogá-las em uma lista simples.
@@ -31,7 +31,7 @@ Projeto simplificado para criação de um aplicativo android para leitura de có
       Para compilar o projeto, execute o script abaixo:
       
       ```bash
-      ./build-apk.sh
+      ./compilaApk.sh
       ```
       Este script irá:
       - Atualizar versão build do aplicativo
@@ -42,18 +42,16 @@ Projeto simplificado para criação de um aplicativo android para leitura de có
       `major` -- versão principal
       `minor` -- versão secundária
       `patch` -- versão de correção
-      Exemplo: `./build-apk.sh minor`
+      Exemplo: `./compilaApk.sh minor`
 
    2. **Compartilhar o APK**
       Após compilar o projeto, execute o script abaixo para compartilhar o APK:
       ```bash
-      ./share-apk.sh
+      ./compartilhaApk.sh
       ```
-      Este script irá:
-      - Copiar o APK para o diretório compartilhado
-      - Gerar um servidor web para compartilhar o APK
-      - Gerar QRCode para acesso ao servidor web
-      - Permitir que seja possível a atualização do aplicativo pelo menu "Sobre"
+      Esse script gera um servidor http python que permite que o APK seja baixado de duas formas: diretamente pelo link ou pelo QRCode gerado no terminal.
+      Além disso, com o servidor rodando, é possível clicar no botão "Verificar Atualizações" no aplicativo para baixar a nova versão do APK compilado. Está configurado para aceitar atualizações desde que a versão do APK seja diferente da versão instalada, independente da versão ser maior ou menor.
+      Na prática, a primeira vez você precisará baixar o APK diretamente, e as próximas vezes você poderá usar o botão "Verificar Atualizações" para baixar a versão disponível.
 
 ## Instalação
 
@@ -85,7 +83,7 @@ Para instalar, siga os passos pelo terminal.
 5. **Compilar o aplicativo pela primeira vez**:
    Ainda dentro do container, execute o script abaixo:
    ```bash
-   ./build-apk.sh
+   ./compilaApk.sh
    ```
    > **Nota**: Esta etapa demorará alguns minutos e ocorrerá alguns erros, já que os pacotes necessários serão baixados e instalados no container.
 

@@ -124,11 +124,32 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
   
   // Diálogo para confirmar atualização
   void _showUpdateDialog(UpdateCheckResult result) {
+    // Extrair a versão e build number do formato completo (1.0.3+8)
+    String displayVersion = result.latestVersion ?? 'mais recente';
+    String buildNumber = '';
+    
+    if (result.latestVersion != null && result.latestVersion!.contains('+')) {
+      final parts = result.latestVersion!.split('+');
+      displayVersion = parts[0];
+      buildNumber = parts[1];
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Nova versão disponível'),
-        content: Text('Deseja baixar e instalar a versão ${result.latestVersion ?? 'mais recente'}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Deseja baixar e instalar a versão $displayVersion (build $buildNumber)?'),
+            const SizedBox(height: 8),
+            Text(
+              'Sua versão atual: ${AppInfo.getFullVersion()}',
+              style: const TextStyle(fontSize: 13),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             child: const Text('CANCELAR'),
@@ -150,15 +171,32 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
   Future<void> _downloadAndInstallUpdate() async {
     final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
     
+    // Primeiro exibe o diálogo de instruções para garantir que ele apareça antes da instalação
+    // O usuário precisa confirmar que entendeu antes de prosseguir com o download
+    _showInstallationInstructionsDialog(downloadAfterConfirm: true);
+  }
+
+  // Função executada após confirmar o diálogo de instruções
+  Future<void> _proceedWithDownload() async {
+    final updateProvider = Provider.of<UpdateProvider>(context, listen: false);
+    
     final result = await updateProvider.downloadAndInstallUpdate();
     
-    // Verificar se a instalação foi iniciada com sucesso
-    if (result.success) {
-      // Mostrar um diálogo explicativo sobre o processo de instalação
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          _showInstallationInstructionsDialog(shouldExitApp: true);
-        }
+    // Se houver erro ou a instalação não iniciar com sucesso, mostrar mensagem
+    if (!result.success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: ${result.message}'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    } else {
+      // Se a instalação foi iniciada com sucesso, encerrar o app
+      Future.delayed(const Duration(seconds: 2), () {
+        exit(0);
       });
     }
   }
@@ -173,7 +211,7 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Não foi possível conectar ao servidor de atualizações.'),
+            const Text('Provavelmente o servidor está offline.'),
             const SizedBox(height: 8),
             if (errorDetail != null)
               Text(
@@ -181,7 +219,8 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
                 style: TextStyle(fontSize: 12, color: Colors.red[700]),
               ),
             const SizedBox(height: 16),
-            const Text('Deseja configurar o endereço do servidor?'),
+            const Text('Entre em contato com o responsável pelo servidor de atualizações.'),
+            const Text('Ou configure o IP e porta do servidor manualmente.'),
           ],
         ),
         actions: [
@@ -202,26 +241,26 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
   }
   
   // Diálogo com instruções para a instalação
-  void _showInstallationInstructionsDialog({bool shouldExitApp = false}) {
+  void _showInstallationInstructionsDialog({bool shouldExitApp = false, bool downloadAfterConfirm = false}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Instalando atualização'),
+        title: const Text('Instruções de instalação'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Uma janela do sistema para instalação do aplicativo será exibida.'),
+            Text('Após o download, uma janela do sistema para instalação do aplicativo será exibida.'),
             SizedBox(height: 12),
-            Text('Por favor, siga estas etapas:'),
+            Text('Siga estas etapas:'),
             SizedBox(height: 8),
             Text('1. Toque em "Instalar" quando solicitado'),
             Text('2. Se solicitado, conceda permissão para instalar o aplicativo'),
             Text('3. Aguarde a conclusão da instalação'),
             Text('4. Toque em "Abrir" para iniciar o aplicativo atualizado'),
             SizedBox(height: 12),
-            Text('Nota: O aplicativo será fechado após você clicar em "ENTENDI" para permitir a instalação da nova versão.',
+            Text('Nota: O aplicativo será fechado automaticamente após o início da instalação.',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
@@ -230,14 +269,12 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
             onPressed: () {
               Navigator.of(context).pop();
               
-              // Se shouldExitApp for true, fechar o aplicativo após fechar o diálogo
-              if (shouldExitApp) {
-                // Adicionar pequeno atraso para garantir que o diálogo seja fechado corretamente
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  // Fechar o aplicativo para permitir a instalação da nova versão
-                  // Isso força o aplicativo a encerrar para que o Android possa completar a instalação
-                  exit(0);
-                });
+              if (downloadAfterConfirm) {
+                // Iniciar o download após fechar o diálogo
+                _proceedWithDownload();
+              } else if (shouldExitApp) {
+                // Fechar o aplicativo se necessário
+                exit(0);
               }
             },
             child: const Text('ENTENDI'),
@@ -291,7 +328,7 @@ class _AboutPageState extends State<AboutPage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        AppInfo.version,
+                        AppInfo.getFullVersion(), // Usando o método que já inclui o número de build
                         style: TextStyle(
                           fontSize: 18,
                           color: colorScheme.secondary,
