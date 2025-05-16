@@ -1,9 +1,9 @@
 # Leitor de Código de Barras
 
-[![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)](https://github.com/mvmvasconcelos/)[![Versão](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/ifsul/barcode-scanner) [![Flutter](https://img.shields.io/badge/Flutter-v3.1.5+-02569B?logo=flutter)](https://flutter.dev/) [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Platform](https://img.shields.io/badge/platform-Android-brightgreen.svg)](https://www.android.com/) [![Docker](https://img.shields.io/badge/Docker-Suportado-2496ED?logo=docker)](https://www.docker.com/) [![IFSul](https://img.shields.io/badge/IFSul-Venâncio%20Aires-195128)](https://vairao.ifsul.edu.br/)
+[![Status](https://img.shields.io/badge/Status-Concluído-1dfd5c)](https://github.com/mvmvasconcelos/)[![Versão](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/ifsul/barcode-scanner) [![Flutter](https://img.shields.io/badge/Flutter-v3.1.5+-02569B?logo=flutter)](https://flutter.dev/) [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Platform](https://img.shields.io/badge/platform-Android-brightgreen.svg)](https://www.android.com/) [![Docker](https://img.shields.io/badge/Docker-Suportado-2496ED?logo=docker)](https://www.docker.com/) [![IFSul](https://img.shields.io/badge/IFSul-Venâncio%20Aires-195128)](https://vairao.ifsul.edu.br/)
 
 
-Projeto simplificado para criação de um aplicativo android para leitura de código de barras em etiquetas de patrimônio e jogá-las em uma lista simples.
+Projeto para criação de um aplicativo Android para leitura de código de barras. O app lê um código de barras e armazena numa lista. Depois o usuário selecionar um ou vários códigos e mandá-los para a área de transferência do celular, colando a lista em um bloco de notas ou mensageiro. Em breve será incorporado em um app para controle patrimonial no IFSul.
 
 ### Pré-requisitos
 
